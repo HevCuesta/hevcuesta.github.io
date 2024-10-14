@@ -28,7 +28,7 @@ function init() {
         70,
         window.innerWidth / window.innerHeight,
         1,
-        1000
+        2000
     );
     camera.position.y = 150;
     camera.position.z = 500;
@@ -214,11 +214,11 @@ function onSpacebarPress() {
     }
 
     // Fix the camera to the front
-    fixCameraToFront();
+    //fixCameraToFront();
 
     // Remove controls
-    controls.dispose();
-    controls = null;
+    //controls.dispose();
+    //controls = null;
 
     // Load and display social media icons
     loadSocialIcons();
@@ -232,27 +232,26 @@ function fixCameraToFront() {
     // Update the camera projection matrix
     camera.updateProjectionMatrix();
 }
-
 function loadSocialIcons() {
     const gltfLoader = new GLTFLoader();
 
-    // Array of social media icons with their respective URLs
+    // Array de íconos de redes sociales con sus URLs respectivas
     const icons = [
         {
             name: 'LinkedIn',
-            url: 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/refs/heads/main/2.0/AnimatedMorphSphere/glTF/AnimatedMorphSphere.gltf',
-            link: 'https://www.linkedin.com/in/yourprofile/',
+            url: 'models/linkedin.gltf',
+            link: 'https://www.linkedin.com/in/daniel-cuesta-moreno/', // Tu URL de LinkedIn
         },
         {
             name: 'GitHub',
             url: 'models/github.gltf',
-            link: 'https://github.com/yourprofile',
+            link: 'https://github.com/tuusuario', // Tu URL de GitHub
         },
-        // Add more icons as needed
+        // Agrega más íconos si es necesario
     ];
 
-    const startX = -200;
-    const spacing = 200;
+    const startX = -400;
+    const spacing = 600;
 
     icons.forEach((icon, index) => {
         gltfLoader.load(
@@ -260,44 +259,57 @@ function loadSocialIcons() {
             (gltf) => {
                 const iconMesh = gltf.scene;
                 iconMesh.position.set(startX + index * spacing, 0, 0);
-                iconMesh.scale.set(50, 50, 50);
+                iconMesh.scale.set(100, 100, 100);
                 scene.add(iconMesh);
 
-                // Store reference for potential future interactions
+                // Habilitar 'name' para identificación
+                iconMesh.name = icon.name;
+
+                // Almacenar referencia para interacciones futuras
                 socialIcons.push({ mesh: iconMesh, link: icon.link });
             },
             undefined,
             (error) => {
-                console.error(`Error loading ${icon.name} model:`, error);
+                console.error(`Error al cargar el modelo ${icon.name}:`, error);
             }
         );
     });
 
-    // Add click event listener for icons
-    effect.domElement.addEventListener('click', onIconClick);
+    // Añadir listener para eventos de clic en el renderer.domElement
+    renderer.domElement.addEventListener('click', onIconClick);
 }
 
+// Ajusta la función onIconClick:
 function onIconClick(event) {
-    // Calculate mouse position in normalized device coordinates
-    const rect = effect.domElement.getBoundingClientRect();
+    // Calcula la posición del mouse en coordenadas normalizadas de dispositivo
+    const rect = renderer.domElement.getBoundingClientRect();
     const mouse = new THREE.Vector2(
         ((event.clientX - rect.left) / rect.width) * 2 - 1,
         -((event.clientY - rect.top) / rect.height) * 2 + 1
     );
 
-    // Raycasting to detect which icon was clicked
+    // Crear un raycaster y establecer su origen y dirección
     const raycaster = new THREE.Raycaster();
     raycaster.setFromCamera(mouse, camera);
 
+    // Obtener todos los meshes de los íconos
     const iconMeshes = socialIcons.map((icon) => icon.mesh);
+
+    // Usar raycaster para detectar intersecciones
     const intersects = raycaster.intersectObjects(iconMeshes, true);
 
     if (intersects.length > 0) {
-        const clickedMesh = intersects[0].object;
-        const icon = socialIcons.find((icon) => icon.mesh === clickedMesh.parent);
+        // Encontrar el ícono que fue clicado
+        let clickedMesh = intersects[0].object;
+        while (clickedMesh.parent && !iconMeshes.includes(clickedMesh)) {
+            clickedMesh = clickedMesh.parent;
+        }
+
+        // Obtener el ícono correspondiente
+        const icon = socialIcons.find((icon) => icon.mesh === clickedMesh);
 
         if (icon) {
-            // Open the social media link in a new tab
+            // Abrir el enlace de la red social en una nueva pestaña
             window.open(icon.link, '_blank');
         }
     }
