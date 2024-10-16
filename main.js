@@ -5,6 +5,7 @@ import { TextGeometry } from 'three/examples/jsm/geometries/TextGeometry.js';
 import { AsciiEffect } from 'three/addons/effects/AsciiEffect.js';
 import * as CANNON from 'cannon-es';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { InteractionManager } from 'three.interactive';
 
 /*
 
@@ -15,11 +16,12 @@ After pressing space, fix the camera to the front.
 
 let camera, controls, scene, renderer, effect;
 const world = new CANNON.World();
-world.gravity.set(-30, -300, -30);
+world.gravity.set(0, -250, 0);
 
 let letters = [];
 let socialIcons = [];
 let danielcuestaDevMesh; // Reference to 'danielcuesta.dev' mesh
+let interactionManager; // Declare interactionManager globally
 
 init();
 
@@ -30,8 +32,8 @@ function init() {
         1,
         2000
     );
-    camera.position.y = 150;
-    camera.position.z = 500;
+    camera.position.y = 250;
+    camera.position.z = 450;
 
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0, 0, 0);
@@ -84,6 +86,12 @@ function init() {
     // Event listener for keydown events
     window.addEventListener('keydown', onKeyDown);
 
+    interactionManager = new InteractionManager(
+        effect,
+        camera,
+        effect.domElement
+    );
+
     setTimeout(() => {
         letters.forEach((letter) => {
             letter.body.position.set(
@@ -96,13 +104,18 @@ function init() {
 
         // Display "danielcuesta.dev" 2 seconds after the initial text explodes
         setTimeout(() => {
+            letters.forEach((letter) => {
+                scene.remove(letter.mesh); // Remove the initial text
+                world.removeBody(letter.body);
+            });
+            letters = []; // Clear the letters array
             loader.load(
                 'https://threejs.org/examples/fonts/helvetiker_regular.typeface.json',
                 function (font) {
                     danielcuestaDevMesh = createText('danielcuesta.dev', font, -400, 100);
                 }
             );
-        }, 2000);
+        }, 4000);
     }, 5000);
 
     animate();
@@ -142,11 +155,6 @@ function createTextPhysics(text, font, offsetX, offsetY) {
     const textMesh = new THREE.Mesh(textGeometry, textMaterial);
     textMesh.position.set(offsetX, offsetY + 500, 0); // Starts higher up
 
-    // Generate a random rotation angle between -5 and 5 degrees
-    const randomAngle = THREE.MathUtils.degToRad(Math.random() * 10 - 5);
-
-    // Apply the random rotation around the Z-axis to the mesh
-    textMesh.rotation.z = randomAngle;
     scene.add(textMesh);
 
     // Create a physical body for the entire text block
@@ -162,7 +170,6 @@ function createTextPhysics(text, font, offsetX, offsetY) {
 
     // Position and rotate the physical body above the plane
     textBody.position.set(offsetX, offsetY + 500, 0);
-    textBody.quaternion.setFromEuler(0, 0, randomAngle); // Rotation around the Z-axis
 
     world.addBody(textBody);
 
@@ -187,6 +194,9 @@ function animate() {
         letter.mesh.quaternion.copy(letter.body.quaternion);
     });
 
+    // Update the InteractionManager
+    interactionManager.update();
+
     // Use effect.render instead of renderer.render
     effect.render(scene, camera);
     requestAnimationFrame(animate);
@@ -194,6 +204,9 @@ function animate() {
 
 // New function to handle keydown events
 function onKeyDown(event) {
+    if (!danielcuestaDevMesh) {
+        return; // Exit if 'danielcuesta.dev' has not loaded yet
+    }
     if (event.code === 'Space') {
         onSpacebarPress();
     }
@@ -232,6 +245,7 @@ function fixCameraToFront() {
     // Update the camera projection matrix
     camera.updateProjectionMatrix();
 }
+
 function loadSocialIcons() {
     const gltfLoader = new GLTFLoader();
 
@@ -258,7 +272,7 @@ function loadSocialIcons() {
             icon.url,
             (gltf) => {
                 const iconMesh = gltf.scene;
-                iconMesh.position.set(startX + index * spacing, 0, 0);
+                iconMesh.position.set(startX + index * spacing, -50, 0);
                 iconMesh.scale.set(100, 100, 100);
                 scene.add(iconMesh);
 
@@ -267,6 +281,14 @@ function loadSocialIcons() {
 
                 // Almacenar referencia para interacciones futuras
                 socialIcons.push({ mesh: iconMesh, link: icon.link });
+
+                // Añadir el icono al InteractionManager
+                interactionManager.add(iconMesh);
+
+                // Añadir evento de clic
+                iconMesh.addEventListener('click', (event) => {
+                    onIconClick(event);
+                });
             },
             undefined,
             (error) => {
@@ -276,41 +298,9 @@ function loadSocialIcons() {
     });
 
     // Añadir listener para eventos de clic en el renderer.domElement
-    renderer.domElement.addEventListener('click', onIconClick);
 }
 
-// Ajusta la función onIconClick:
+// Ajusta la función onIconClick usando three.interactive:
 function onIconClick(event) {
-    // Calcula la posición del mouse en coordenadas normalizadas de dispositivo
-    const rect = renderer.domElement.getBoundingClientRect();
-    const mouse = new THREE.Vector2(
-        ((event.clientX - rect.left) / rect.width) * 2 - 1,
-        -((event.clientY - rect.top) / rect.height) * 2 + 1
-    );
-
-    // Crear un raycaster y establecer su origen y dirección
-    const raycaster = new THREE.Raycaster();
-    raycaster.setFromCamera(mouse, camera);
-
-    // Obtener todos los meshes de los íconos
-    const iconMeshes = socialIcons.map((icon) => icon.mesh);
-
-    // Usar raycaster para detectar intersecciones
-    const intersects = raycaster.intersectObjects(iconMeshes, true);
-
-    if (intersects.length > 0) {
-        // Encontrar el ícono que fue clicado
-        let clickedMesh = intersects[0].object;
-        while (clickedMesh.parent && !iconMeshes.includes(clickedMesh)) {
-            clickedMesh = clickedMesh.parent;
-        }
-
-        // Obtener el ícono correspondiente
-        const icon = socialIcons.find((icon) => icon.mesh === clickedMesh);
-
-        if (icon) {
-            // Abrir el enlace de la red social en una nueva pestaña
-            window.open(icon.link, '_blank');
-        }
-    }
+    window.open('google.es', '_blank');
 }
