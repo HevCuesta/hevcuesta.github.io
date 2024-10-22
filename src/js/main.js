@@ -51,7 +51,7 @@ function init() {
         'https://threejs.org/examples/fonts/helvetiker_regular.typeface.json',
         function (font) {
             createTextPhysics('Daniel Cuesta', font, -400, 100);
-            createTextPhysics('Desarrollador Web', font, -500, 0);
+            createTextPhysics('Desarrollador', font, -500, 0);
         }
     );
 
@@ -112,7 +112,7 @@ function init() {
             loader.load(
                 'https://threejs.org/examples/fonts/helvetiker_regular.typeface.json',
                 function (font) {
-                    danielcuestaDevMesh = createText('danielcuesta.dev', font, -400, 100);
+                    danielcuestaDevMesh = createText('hevcuesta.github.io', font, -400, 100);
                 }
             );
         }, 4000);
@@ -253,12 +253,12 @@ function loadSocialIcons() {
     const icons = [
         {
             name: 'LinkedIn',
-            url: 'models/linkedin.gltf',
+            url: '/hevcuesta.github.io/assets/models/linkedin.gltf',
             link: 'https://www.linkedin.com/in/daniel-cuesta-moreno/', // Tu URL de LinkedIn
         },
         {
             name: 'GitHub',
-            url: 'models/github.gltf',
+            url: '/hevcuesta.github.io/assets/models/github.gltf',
             link: 'https://github.com/tuusuario', // Tu URL de GitHub
         },
         // Agrega más íconos si es necesario

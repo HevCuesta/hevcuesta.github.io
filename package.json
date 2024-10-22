@@ -6,6 +6,12 @@
     "three.interactive": "^1.8.0"
   },
   "devDependencies": {
+    "gh-pages": "^6.2.0",
     "vite": "^5.4.8"
+  },
+  "scripts": {
+    "build": "vite build",
+    "deploy": "gh-pages -d dist",
+    "ghhelp": "gh-pages --help"
   }
 }
